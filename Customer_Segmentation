@@ -1,0 +1,62 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.cluster import KMeans
+from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
+from sklearn.metrics import silhouette_score
+
+file_path = 'Mall_Customers.csv'
+df = pd.read_csv("C:/Users/user/Downloads/New folder/Mall_Customers.csv")
+
+df.head()
+
+df.isnull().sum()
+
+X = df[['Age', 'Annual Income (k$)', 'Spending Score (1-100)']]
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+
+wcss = []
+for i in range(1, 11):
+    kmeans = KMeans(n_clusters=i, init='k-means++', max_iter=300, n_init=10, random_state=0)
+    kmeans.fit(X_scaled)
+    wcss.append(kmeans.inertia_)
+
+plt.plot(range(1, 11), wcss)
+plt.title('Elbow Method')
+plt.xlabel('Number of clusters')
+plt.ylabel('WCSS')
+plt.show()
+
+#using this method also to get a comprehensive view of the clustering.
+silhouette_scores = []
+for i in range(2, 11):
+    kmeans = KMeans(n_clusters=i, init='k-means++', max_iter=300, n_init=10, random_state=0)
+    kmeans.fit(X_scaled)
+    silhouette_scores.append(silhouette_score(X_scaled, kmeans.labels_))
+
+plt.plot(range(2, 11), silhouette_scores)
+plt.title('Silhouette Score')
+plt.xlabel('Number of clusters')
+plt.ylabel('Silhouette Score')
+plt.show()
+
+kmeans = KMeans(n_clusters=5, init='k-means++', max_iter=300, n_init=10, random_state=0)
+clusters = kmeans.fit_predict(X_scaled)
+df['Cluster'] = clusters
+df.head()
+
+pca = PCA(n_components=2)
+X_pca = pca.fit_transform(X_scaled)
+
+plt.figure(figsize=(8, 6))
+sns.scatterplot(x=X_pca[:, 0], y=X_pca[:, 1], hue=df['Cluster'], palette='viridis')
+plt.title('Customer Segments Visualization')
+plt.show()
+
+#selecting only numerical columns
+numeric_df = df.select_dtypes(include=['number'])
+cluster_analysis = numeric_df.groupby(df['Cluster']).mean()
+print(cluster_analysis)
